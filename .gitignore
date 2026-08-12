@@ -4,6 +4,7 @@
 *.obj
 bin/
 obj/
+build/
 
 # Local/runtime state
 config.json
