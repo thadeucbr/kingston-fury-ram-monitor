@@ -1,0 +1,26 @@
+# Build outputs
+*.exe
+*.pdb
+*.obj
+bin/
+obj/
+
+# Local/runtime state
+config.json
+*.log
+*.tmp
+
+# Reverse-engineering captures and machine-local evidence
+*.pcap
+*.pcapng
+*.etl
+*.cab
+*.netsh
+captures/
+artifacts/
+
+# Editor/OS files
+.vs/
+.vscode/
+.DS_Store
+Thumbs.db
