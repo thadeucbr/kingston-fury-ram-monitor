@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
 
@@ -17,7 +18,7 @@ internal static class RamFuryTray
     private static readonly List<SavedPalette> Saved = new List<SavedPalette>();
 
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
@@ -38,6 +39,7 @@ internal static class RamFuryTray
         menu.Items.Add(exit);
         _icon = new NotifyIcon { Icon = SystemIcons.Application, Text = "RAM FURY Monitor", ContextMenuStrip = menu, Visible = true };
         _icon.DoubleClick += (s, e) => ShowSettings();
+        if (args != null && args.Any(x => string.Equals(x, "--open", StringComparison.OrdinalIgnoreCase))) ShowSettings();
         Application.Run();
     }
 
@@ -125,8 +127,29 @@ internal static class RamFuryTray
             _brightness = Slider(24, 145, 420, 0, 100, brightness < 0 ? 100 : brightness); Controls.Add(_brightness);
             _original = new CheckBox { Text = "Usar brilho original", Checked = brightness < 0, Location = new Point(24, 180), AutoSize = true, ForeColor = Color.FromArgb(210, 215, 225) }; _original.CheckedChanged += (s, e) => _brightness.Enabled = !_original.Checked; Controls.Add(_original);
             Controls.Add(Label("PALETA", 24, 218, 100, 18, 9, FontStyle.Bold, Color.FromArgb(210, 170, 70)));
-            _presets = new ComboBox { Location = new Point(24, 240), Width = 300, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(35, 38, 45), ForeColor = Color.White, DisplayMember = "Name", ValueMember = "Value" };
-            var presets = new List<object> { new Preset("Traffic  /  verde → vermelho", "traffic"), new Preset("Verde fixa", "green"), new Preset("Azul fixa", "blue"), new Preset("Roxo fixa", "purple"), new Preset("Old Gold", "oldgold"), new Preset("Personalizada", "custom") }; foreach (var p in _palettes) presets.Add(p); _presets.DataSource = presets; _presets.SelectedValue = palette; _presets.SelectedIndexChanged += (s, e) => { if (!_updating && _presets.SelectedItem is SavedPalette) SetHex(((SavedPalette)_presets.SelectedItem).Hex); }; Controls.Add(_presets);
+            _presets = new ComboBox { Location = new Point(24, 240), Width = 300, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(35, 38, 45), ForeColor = Color.White };
+            _presets.Items.Add(new Preset("Traffic  /  verde → vermelho", "traffic"));
+            _presets.Items.Add(new Preset("Verde fixa", "green"));
+            _presets.Items.Add(new Preset("Azul fixa", "blue"));
+            _presets.Items.Add(new Preset("Roxo fixa", "purple"));
+            _presets.Items.Add(new Preset("Old Gold", "oldgold"));
+            _presets.Items.Add(new Preset("Personalizada", "custom"));
+            foreach (var savedPalette in _palettes) _presets.Items.Add(savedPalette);
+            for (int i = 0; i < _presets.Items.Count; i++)
+            {
+                var preset = _presets.Items[i] as Preset;
+                if (preset != null && string.Equals(preset.Value, palette, StringComparison.OrdinalIgnoreCase)) { _presets.SelectedIndex = i; break; }
+            }
+            if (_presets.SelectedIndex < 0) _presets.SelectedIndex = 5;
+            _presets.SelectedIndexChanged += (s, e) =>
+            {
+                if (_updating) return;
+                var savedPalette = _presets.SelectedItem as SavedPalette;
+                var preset = _presets.SelectedItem as Preset;
+                if (savedPalette != null) SetHex(savedPalette.Hex);
+                else if (preset != null && _preview != null) _preview.BackColor = PreviewColor(preset.Value, _hex.Text);
+            };
+            Controls.Add(_presets);
             _preview = new Panel { Location = new Point(350, 235), Size = new Size(94, 38), BackColor = ParseColor(color), BorderStyle = BorderStyle.FixedSingle }; Controls.Add(_preview);
             Controls.Add(Label("EDITOR DE COR  /  HSV + RGB + HEX", 24, 285, 300, 18, 9, FontStyle.Bold, Color.FromArgb(210, 170, 70)));
             _hue = Slider(24, 310, 300, 0, 360, 30); _sat = Slider(24, 345, 300, 0, 100, 100); _value = Slider(24, 380, 300, 0, 100, 55); Controls.Add(_hue); Controls.Add(_sat); Controls.Add(_value);
@@ -136,7 +159,7 @@ internal static class RamFuryTray
             var saveName = Label("Nome", 24, 466, 45, 18, 8, FontStyle.Bold, Color.FromArgb(155, 160, 170)); Controls.Add(saveName); _name = new TextBox { Location = new Point(70, 462), Width = 170, BackColor = Color.FromArgb(35, 38, 45), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle }; Controls.Add(_name);
             var savePalette = Button("Salvar paleta", 250, 458, 110); savePalette.Click += (s, e) => { string n = _name.Text.Trim(); if (n.Length > 0) { _palettes.RemoveAll(p => p.Name.Equals(n, StringComparison.OrdinalIgnoreCase)); _palettes.Add(new SavedPalette(n, HexColor)); MessageBox.Show("Paleta salva.", "RAM FURY", MessageBoxButtons.OK, MessageBoxIcon.Information); } }; Controls.Add(savePalette);
             var cancel = Button("Cancelar", 365, 458, 75); cancel.DialogResult = DialogResult.Cancel; Controls.Add(cancel); var apply = Button("Aplicar", 445, 458, 60); apply.DialogResult = DialogResult.OK; Controls.Add(apply); AcceptButton = apply; CancelButton = cancel;
-            SetHex(color); _original.Checked = brightness < 0;
+            SetHex(color); _preview.BackColor = PreviewColor(palette, color); _original.Checked = brightness < 0;
         }
 
         private void SetHex(string value) { _updating = true; _hex.Text = NormalizeHex(value); var c = ParseColor(_hex.Text); _preview.BackColor = c; _red.Text = c.R.ToString(); _green.Text = c.G.ToString(); _blue.Text = c.B.ToString(); int h, s, v; RgbToHsv(c, out h, out s, out v); _hue.Value = Math.Max(0, Math.Min(360, h)); _sat.Value = s; _value.Value = v; _updating = false; }
@@ -146,6 +169,7 @@ internal static class RamFuryTray
         private static int Clamp(int x) { return Math.Max(0, Math.Min(255, x)); }
         private static string NormalizeHex(string value) { string h = (value ?? "").Trim(); if (!h.StartsWith("#")) h = "#" + h; return h.Length == 7 ? h.ToUpperInvariant() : "#8C5000"; }
         private static Color ParseColor(string value) { try { return ColorTranslator.FromHtml(NormalizeHex(value)); } catch { return Color.FromArgb(140, 80, 0); } }
+        private static Color PreviewColor(string palette, string custom) { switch ((palette ?? "custom").ToLowerInvariant()) { case "green": return Color.FromArgb(0, 255, 0); case "blue": return Color.FromArgb(0, 128, 255); case "purple": return Color.FromArgb(190, 0, 255); case "oldgold": return Color.FromArgb(140, 80, 0); case "traffic": return Color.FromArgb(255, 190, 0); default: return ParseColor(custom); } }
         private static string ToHex(Color c) { return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2"); }
         private static Label Label(string text, int x, int y, int w, int h, float size, FontStyle style, Color? color = null) { return new Label { Text = text, Location = new Point(x, y), Size = new Size(w, h), ForeColor = color ?? Color.White, Font = new Font("Segoe UI", size, style) }; }
         private static TextBox Field(string prefix, int x, int y) { var t = new TextBox { Text = "0", Location = new Point(x, y), Width = 72, BackColor = Color.FromArgb(35, 38, 45), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle }; return t; }
