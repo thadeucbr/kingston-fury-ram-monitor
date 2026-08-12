@@ -132,6 +132,32 @@ assets/branding/ram-fury-installer-banner.png
 
 O `.ico` contém múltiplas resoluções para tray e executáveis. O banner fica reservado para a interface do instalador profissional.
 
+## Instalador gráfico
+
+Para gerar o pacote completo:
+
+```text
+scripts\package.cmd
+```
+
+Saída:
+
+```text
+dist\RamFurySetup\RamFurySetup.exe
+dist\RamFurySetup.zip
+```
+
+O instalador gráfico:
+
+- exige elevação administrativa via manifest do Windows;
+- mostra o banner e o status do bundle;
+- verifica se o endpoint local do FURY CTRL está acessível;
+- instala ou atualiza o serviço;
+- instala a tray e o ícone oficial;
+- registra a inicialização automática;
+- preserva configurações e logs;
+- remove serviço e startup sem apagar dados do usuário.
+
 ## Pré-requisitos
 
 - Windows 10/11;
