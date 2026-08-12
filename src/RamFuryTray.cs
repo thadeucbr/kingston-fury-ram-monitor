@@ -37,10 +37,21 @@ internal static class RamFuryTray
         var exit = new ToolStripMenuItem("Fechar painel");
         exit.Click += (s, e) => { _icon.Visible = false; Application.Exit(); };
         menu.Items.Add(exit);
-        _icon = new NotifyIcon { Icon = SystemIcons.Application, Text = "RAM FURY Monitor", ContextMenuStrip = menu, Visible = true };
+        _icon = new NotifyIcon { Icon = LoadIcon(), Text = "RAM FURY Monitor", ContextMenuStrip = menu, Visible = true };
         _icon.DoubleClick += (s, e) => ShowSettings();
         if (args != null && args.Any(x => string.Equals(x, "--open", StringComparison.OrdinalIgnoreCase))) ShowSettings();
         Application.Run();
+    }
+
+    private static Icon LoadIcon()
+    {
+        try
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ram-fury.ico");
+            if (File.Exists(path)) return new Icon(path);
+        }
+        catch { }
+        return SystemIcons.Application;
     }
 
     private static bool IsEnabled() { return _enabled == null || _enabled.Checked; }

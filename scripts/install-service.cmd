@@ -5,6 +5,7 @@ set "INSTALL_DIR=C:\ProgramData\RamFuryMonitor"
 set "APP=%INSTALL_DIR%\RamFuryMonitor.exe"
 set "TRAY=%INSTALL_DIR%\RamFuryTray.exe"
 set "BUILD=%ROOT%\build"
+for %%I in ("%ROOT%\assets\branding\ram-fury.ico") do set "ICON=%%~fI"
 
 net session >nul 2>&1
 if not "%errorlevel%"=="0" (
@@ -15,6 +16,10 @@ if not "%errorlevel%"=="0" (
 call "%~dp0build.cmd" || exit /b 1
 if not exist "%BUILD%\RamFuryMonitor.exe" exit /b 1
 if not exist "%BUILD%\RamFuryTray.exe" exit /b 1
+if not exist "%ICON%" (
+  echo [ERROR] Branding icon not found: %ICON%
+  exit /b 1
+)
 
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 taskkill.exe /IM RamFuryTray.exe /F >nul 2>&1
@@ -26,6 +31,7 @@ for /L %%I in (1,1,10) do (
 :stopped
 copy /Y "%BUILD%\RamFuryMonitor.exe" "%APP%" >nul || (echo [ERROR] Could not update service binary.& exit /b 1)
 copy /Y "%BUILD%\RamFuryTray.exe" "%TRAY%" >nul || (echo [ERROR] Could not update tray binary.& exit /b 1)
+copy /Y "%ICON%" "%INSTALL_DIR%\ram-fury.ico" >nul || (echo [ERROR] Could not install icon.& exit /b 1)
 
 if not exist "%INSTALL_DIR%\config.json" (
   >"%INSTALL_DIR%\config.json" echo {"enabled":true,"palette":"traffic","brightness":-1,"color":"#8C5000","savedPalettes":[]}

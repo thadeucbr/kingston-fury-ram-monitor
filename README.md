@@ -120,6 +120,18 @@ scripts\build.cmd
 
 Os fontes ficam em `src\` e os artefatos locais em `build\`; binários compilados não entram no Git.
 
+## Identidade visual
+
+Assets oficiais:
+
+```text
+assets/branding/ram-fury.ico
+assets/branding/ram-fury-icon.png
+assets/branding/ram-fury-installer-banner.png
+```
+
+O `.ico` contém múltiplas resoluções para tray e executáveis. O banner fica reservado para a interface do instalador profissional.
+
 ## Pré-requisitos
 
 - Windows 10/11;
