@@ -17,12 +17,20 @@ Com 24% de RAM, por exemplo:
 3 LEDs acesos em cada stick
 ```
 
-## Componentes
+## Estrutura do projeto
 
 ```text
-RamFuryMonitor.exe  → serviço Windows e motor do efeito
-RamFuryTray.exe     → painel na bandeja do Windows
-FuryControllerService.exe → serviço oficial Kingston
+src/
+  RamFuryMonitor.cs          motor do efeito e bridge FURY
+  MonitorConfig.cs           configuração persistente
+  RamFuryWindowsService.cs   host do serviço Windows
+  RamFuryTray.cs             painel da bandeja e editor visual
+scripts/
+  build.cmd                  compilação local
+  install-service.cmd        instalação idempotente
+  uninstall-service.cmd      remoção do serviço e startup
+build/                       artefatos locais ignorados pelo Git
+docs/                        documentação de produto
 ```
 
 O FURY CTRL precisa continuar instalado porque fornece o serviço, DLLs e drivers SMBus. A interface do FURY CTRL não precisa ficar aberta.
@@ -57,7 +65,7 @@ Exemplo:
 Execute como administrador:
 
 ```text
-install-service.cmd
+scripts\install-service.cmd
 ```
 
 O instalador:
@@ -77,7 +85,7 @@ C:\ProgramData\RamFuryMonitor\monitor.log
 Remoção:
 
 ```text
-uninstall-service.cmd
+scripts\uninstall-service.cmd
 ```
 
 Também deve ser executado como administrador.
@@ -107,16 +115,17 @@ RamFuryMonitor.exe --service
 Os binários são compilados somente com o .NET Framework já instalado:
 
 ```text
-C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:exe /out:RamFuryMonitor.exe /reference:System.Web.Extensions.dll /reference:System.Net.Http.dll /reference:System.ServiceProcess.dll RamFuryMonitor.cs
-C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /nologo /target:winexe /out:RamFuryTray.exe /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll RamFuryTray.cs
+scripts\build.cmd
 ```
 
-## Protocolo validado
+Os fontes ficam em `src\` e os artefatos locais em `build\`; binários compilados não entram no Git.
 
-```text
-Endpoint: ws://127.0.0.1:55599/
-Origin: ksws-dramledctrl://5E7EFB96-6632-40D5-882F-51CE1E62CA3F
-RijndaelManaged: BlockSize 256, CBC, PKCS7
-Rfc2898DeriveBytes: 1000 iterações, chave de 32 bytes
-Wire format: Base64(salt de 32 + IV de 32 + ciphertext)
-```
+## Pré-requisitos
+
+- Windows 10/11;
+- .NET Framework 4.x já disponível no Windows;
+- Kingston FURY CTRL instalado;
+- serviço oficial do FURY CTRL ativo;
+- acesso administrativo apenas durante a instalação.
+
+A aplicação conversa somente com o serviço local oficial da Kingston. Não instala OpenRGB, drivers RGB alternativos ou serviços de terceiros.
